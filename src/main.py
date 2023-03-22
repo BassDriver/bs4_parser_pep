@@ -20,7 +20,8 @@ def whats_new(session):
     soup = BeautifulSoup(response.text, features='lxml')
     main_div = find_tag(soup, 'section', attrs={'id': 'what-s-new-in-python'})
     div_with_ul = find_tag(main_div, 'div', attrs={'class': 'toctree-wrapper'})
-    sections_by_python = div_with_ul.find_all('li', attrs={'class': 'toctree-l1'})
+    sections_by_python = div_with_ul.find_all(
+        'li', attrs={'class': 'toctree-l1'})
     results = [('Ссылка на статью', 'Заголовок', 'Редактор, Автор')]
     for section in tqdm(sections_by_python):
         version_a_tag = section.find('a')
@@ -32,18 +33,17 @@ def whats_new(session):
         h1 = find_tag(soup, 'h1')
         dl = find_tag(soup, 'dl')
         dl_text = dl.text.replace('\n', ' ')
-        results.append(
-        (version_link, h1.text, dl_text)
-        )
+        results.append((version_link, h1.text, dl_text))
 
     return results
+
 
 def latest_versions(session):
     response = get_response(session, MAIN_DOC_URL)
     if response is None:
         return
     soup = BeautifulSoup(response.text, 'lxml')
-    sidebar = find_tag(soup,'div', {'class': 'sphinxsidebarwrapper'})
+    sidebar = find_tag(soup, 'div', {'class': 'sphinxsidebarwrapper'})
     ul_tags = sidebar.find_all('ul')
     for ul in ul_tags:
         if 'All versions' in ul.text:
@@ -75,7 +75,9 @@ def download(session):
     soup = BeautifulSoup(response.text, 'lxml')
     main_tag = find_tag(soup, 'div', {'role': 'main'})
     table_tag = find_tag(main_tag, 'table', {'class': 'docutils'})
-    pdf_a4_tag = find_tag(table_tag, 'a', {'href': re.compile(r'.+pdf-a4\.zip$')})
+    pdf_a4_tag = find_tag(
+        table_tag, 'a', {'href': re.compile(r'.+pdf-a4\.zip$')}
+    )
     pdf_a4_link = pdf_a4_tag['href']
     archive_url = urljoin(downloads_url, pdf_a4_link)
     filename = archive_url.split('/')[-1]
@@ -90,7 +92,6 @@ def download(session):
 
 
 def pep(session):
-    """Подсчет PEP по статусам."""
     response = get_response(session, PEP_LIST_URL)
     if response is None:
         return
@@ -156,6 +157,7 @@ MODE_TO_FUNCTION = {
     'pep': pep,
 }
 
+
 def main():
     configure_logging()
     logging.info('Парсер запущен!')
@@ -174,6 +176,7 @@ def main():
     if results is not None:
         control_output(results, args)
     logging.info('Парсер завершил работу.')
+
 
 if __name__ == '__main__':
     main()
