@@ -1,11 +1,9 @@
-import logging
-
 from bs4 import BeautifulSoup
 from requests import RequestException
 from exceptions import ParserFindTagException
 
 
-CONNECTION_ERROR='Возникла ошибка при загрузке страницы {url}'
+CONNECTION_ERROR = 'Возникла ошибка при загрузке страницы {url}'
 ERROR_MESSAGE = 'Не найден тег {tag} {attrs}'
 
 

@@ -31,7 +31,7 @@ def whats_new(session):
         try:
             soup = get_soup(session, version_link)
             results.append(
-                (version_link, find_tag(soup, 'h1').text, 
+                (version_link, find_tag(soup, 'h1').text,
                  find_tag(soup, 'dl').text.replace('\n', ' '))
                 )
         except ConnectionError:
@@ -69,7 +69,8 @@ def download(session):
     downloads_url = urljoin(MAIN_DOC_URL, 'download.html')
     soup = get_soup(session, downloads_url)
 
-    pdf_a4_link = soup.select_one('div[role=main] table.docutils a[href$="pdf-a4.zip"]')['href']
+    pdf_a4_link = soup.select_one(
+        'div[role=main] table.docutils a[href$="pdf-a4.zip"]')['href']
 
     archive_url = urljoin(downloads_url, pdf_a4_link)
     filename = archive_url.split('/')[-1]
