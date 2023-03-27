@@ -15,6 +15,7 @@ from utils import find_tag, get_soup
 DOWNLOAD_COMPLETE = 'Архив был загружен и сохранён: {archive_path}'
 VALUE_ERROR = 'Ничего не нашлось'
 COMMAND_ARGUMENTS = 'Аргументы командной строки: {args}'
+JOB_STARTED = 'Парсер запущен!'
 JOB_DONE = 'Парсер завершил работу.'
 ERROR_MESSAGE = 'Ошибка при выполнении: {error}'
 LINK_ERROR = 'Ссылка {link} недоступна. Ошбика {error}'
@@ -46,10 +47,7 @@ def whats_new(session):
             error_messages.append(
                 LINK_ERROR.format(link=version_link, error=error))
 
-    for error in (
-      error for error in error_messages if error_messages != []
-    ):
-        logging.exception(error)
+    list(map(logging.exception, error_messages))
 
     return results
 
@@ -128,18 +126,10 @@ def pep(session):
                 )
             status_counter[status_internal] += 1
         except ConnectionError as error:
-            error_messages.append(
+            info_messages.append(
                 LINK_ERROR.format(link=full_link, error=error))
 
-    for error in (
-      error for error in error_messages if error_messages != []
-    ):
-        logging.exception(error)
-
-    for info in (
-      info for info in info_messages if info_messages != []
-    ):
-        logging.info(info)
+    list(map(logging.info, info_messages))
     return [
         ('Статус', 'Количество'),
         *status_counter.items(),
@@ -157,7 +147,7 @@ MODE_TO_FUNCTION = {
 
 def main():
     configure_logging()
-    logging.info('Парсер запущен!')
+    logging.info(JOB_STARTED)
 
     arg_parser = configure_argument_parser(MODE_TO_FUNCTION.keys())
     args = arg_parser.parse_args()

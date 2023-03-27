@@ -8,15 +8,6 @@ from constants import (
 
 
 FILE_SAVED = 'Файл с результатами был сохранён: {file_path}'
-OUTPUTS = {
-        OUTPUT_ATTR_PRETTY: 'pretty_output',
-        OUTPUT_ATTR_FILE: 'file_output',
-        None: 'default_output'
-    }
-
-
-def control_output(results, cli_args):
-    eval(OUTPUTS[cli_args.output])(results, cli_args)
 
 
 def default_output(results, cli_args):
@@ -47,3 +38,14 @@ def file_output(results, cli_args):
           results
         )
     logging.info(FILE_SAVED.format(file_path=file_path))
+
+
+OUTPUTS = {
+    OUTPUT_ATTR_PRETTY: pretty_output,
+    OUTPUT_ATTR_FILE: file_output,
+    None: default_output
+}
+
+
+def control_output(results, cli_args):
+    OUTPUTS[cli_args.output](results, cli_args)
