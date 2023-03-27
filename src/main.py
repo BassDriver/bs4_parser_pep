@@ -106,7 +106,6 @@ def pep(session):
     pep_lines = pep_list.find_all('tr')
     status_counter = defaultdict(int)
     info_messages = []
-    error_messages = []
     for pep_line in tqdm(pep_lines):
         short_status = pep_line.find('td').text[1:]
         status_external = EXPECTED_STATUS[short_status]
