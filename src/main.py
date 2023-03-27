@@ -47,8 +47,8 @@ def whats_new(session):
 
 def latest_versions(session):
     for ul in (get_soup(
-        session, MAIN_DOC_URL).select('div.sphinxsidebarwrapper ul')
-        ):
+        session, MAIN_DOC_URL).select('div.sphinxsidebarwrapper ul'
+        )):
         if 'All versions' in ul.text:
             a_tags = ul.find_all('a')
             break
