@@ -13,6 +13,7 @@ from outputs import control_output
 from utils import find_tag, get_soup
 
 DOWNLOAD_COMPLETE = 'Архив был загружен и сохранён: {archive_path}'
+VALUE_ERROR = 'Ничего не нашлось'
 COMMAND_ARGUMENTS = 'Аргументы командной строки: {args}'
 JOB_DONE = 'Парсер завершил работу.'
 ERROR_MESSAGE = 'Ошибка при выполнении: {error}'
@@ -26,11 +27,15 @@ INFO_MESSAGE = ('Несовпадение статусов:'
 def whats_new(session):
     whats_new_url = urljoin(MAIN_DOC_URL, 'whatsnew/')
     results = [('Ссылка на статью', 'Заголовок', 'Редактор, Автор')]
-    for section in tqdm(
-        get_soup(session, whats_new_url).select(
-            '#what-s-new-in-python div.toctree-wrapper li.toctree-l1 > a'
-            )):
-        version_link = urljoin(whats_new_url, section['href'])
+    error_messages = []
+    for a in tqdm(
+        get_soup(
+          session, whats_new_url
+        ).select(
+          '#what-s-new-in-python div.toctree-wrapper li.toctree-l1 > a'
+        )
+    ):
+        version_link = urljoin(whats_new_url, a['href'])
         try:
             soup = get_soup(session, version_link)
             results.append(
@@ -38,22 +43,28 @@ def whats_new(session):
                  find_tag(soup, 'dl').text.replace('\n', ' '))
                 )
         except ConnectionError as error:
-            logging.exception(
+            error_messages.append(
                 LINK_ERROR.format(link=version_link, error=error))
-            continue
+            
+    for error in (
+      error for error in error_messages if error_messages != []
+    ):
+        logging.exception(error)
 
     return results
 
 
 def latest_versions(session):
-    for ul in (get_soup(
-        session, MAIN_DOC_URL).select('div.sphinxsidebarwrapper ul')
-            ):
+    for ul in get_soup(
+      session, MAIN_DOC_URL
+    ).select(
+      'div.sphinxsidebarwrapper ul'
+    ):
         if 'All versions' in ul.text:
             a_tags = ul.find_all('a')
             break
     else:
-        raise IndexError('Ничего не нашлось')
+        raise ValueError(VALUE_ERROR)
     results = [('Ссылка на документацию', 'Версия', 'Статус')]
     pattern = r'Python (?P<version>\d\.\d+) \((?P<status>.*)\)'
 
@@ -72,8 +83,11 @@ def latest_versions(session):
 def download(session):
     downloads_url = urljoin(MAIN_DOC_URL, 'download.html')
 
-    pdf_a4_link = get_soup(session, downloads_url).select_one(
-        'div[role=main] table.docutils a[href$="pdf-a4.zip"]')['href']
+    pdf_a4_link = get_soup(
+      session, downloads_url
+    ).select_one(
+      'div[role=main] table.docutils a[href$="pdf-a4.zip"]'
+    )['href']
 
     archive_url = urljoin(downloads_url, pdf_a4_link)
     filename = archive_url.split('/')[-1]
@@ -93,7 +107,8 @@ def pep(session):
     pep_list = find_tag(num_index, 'tbody')
     pep_lines = pep_list.find_all('tr')
     status_counter = defaultdict(int)
-    info_message = []
+    info_messages = []
+    error_messages = []
     for pep_line in tqdm(pep_lines):
         short_status = pep_line.find('td').text[1:]
         status_external = EXPECTED_STATUS[short_status]
@@ -107,17 +122,24 @@ def pep(session):
             status_internal = str(
                 status_line.next_sibling.next_sibling.string)
             if status_internal not in status_external:
-                info_message.append(INFO_MESSAGE.format(
+                info_messages.append(INFO_MESSAGE.format(
                     full_link=full_link, status_internal=status_internal,
                     status_external=status_external)
                 )
             status_counter[status_internal] += 1
         except ConnectionError as error:
-            logging.exception(LINK_ERROR.format(link=full_link, error=error))
-            continue
+            error_messages.append(
+                LINK_ERROR.format(link=full_link, error=error))
 
-    if info_message != []:
-        logging.info(info_message)
+    for error in (
+      error for error in error_messages if error_messages != []
+    ):
+        logging.exception(error)
+
+    for info in (
+      info for info in info_messages if info_messages != []
+    ):
+        logging.info(info)
     return [
         ('Статус', 'Количество'),
         *status_counter.items(),
