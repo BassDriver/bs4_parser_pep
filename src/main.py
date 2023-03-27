@@ -45,7 +45,7 @@ def whats_new(session):
         except ConnectionError as error:
             error_messages.append(
                 LINK_ERROR.format(link=version_link, error=error))
-            
+
     for error in (
       error for error in error_messages if error_messages != []
     ):

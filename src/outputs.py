@@ -14,6 +14,7 @@ OUTPUTS = {
         None: 'default_output'
     }
 
+
 def control_output(results, cli_args):
     eval(OUTPUTS[cli_args.output])(results, cli_args)
 
