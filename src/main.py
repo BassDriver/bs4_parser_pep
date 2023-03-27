@@ -29,8 +29,7 @@ def whats_new(session):
     for section in tqdm(
         get_soup(session, whats_new_url).select(
             '#what-s-new-in-python div.toctree-wrapper li.toctree-l1 > a'
-            )
-        ):
+            )):
         version_link = urljoin(whats_new_url, section['href'])
         try:
             soup = get_soup(session, version_link)
@@ -39,15 +38,16 @@ def whats_new(session):
                  find_tag(soup, 'dl').text.replace('\n', ' '))
                 )
         except ConnectionError as error:
-            logging.exception(LINK_ERROR.format(link=version_link, error=error))
+            logging.exception(
+                LINK_ERROR.format(link=version_link, error=error))
             continue
 
     return results
 
 
 def latest_versions(session):
-    for ul in get_soup(
-        session, MAIN_DOC_URL).select('div.sphinxsidebarwrapper ul'):
+    for ul in (get_soup(
+        session, MAIN_DOC_URL).select('div.sphinxsidebarwrapper ul')):
         if 'All versions' in ul.text:
             a_tags = ul.find_all('a')
             break
@@ -113,7 +113,7 @@ def pep(session):
             status_counter[status_internal] += 1
         except ConnectionError as error:
             logging.exception(LINK_ERROR.format(link=full_link, error=error))
-            continue 
+            continue
 
     if info_message != []:
         logging.info(info_message)
