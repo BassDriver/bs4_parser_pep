@@ -3,22 +3,21 @@ import datetime as dt
 import logging
 
 from prettytable import PrettyTable
-from constants import BASE_DIR, DATETIME_FORMAT, RESULTS
+from constants import (
+    BASE_DIR, DATETIME_FORMAT, OUTPUT_ATTR_FILE, OUTPUT_ATTR_PRETTY, RESULTS)
 
 
 FILE_SAVED = 'Файл с результатами был сохранён: {file_path}'
 
 
 def control_output(results, cli_args):
-    outputs = {
-        'pretty': pretty_output,
-        'file': file_output,
-        '': default_output
+    OUTPUTS = {
+        OUTPUT_ATTR_PRETTY: pretty_output,
+        OUTPUT_ATTR_FILE: file_output,
+        None: default_output
     }
-    output = cli_args.output
-    if not output:
-        output = ''
-    outputs[output](results, cli_args)
+
+    OUTPUTS[cli_args.output](results, cli_args)
 
 
 def default_output(results, cli_args):
@@ -43,6 +42,5 @@ def file_output(results, cli_args):
     file_name = f'{parser_mode}_{now_formatted}.csv'
     file_path = RESULTS_DIR / file_name
     with open(file_path, 'w', encoding='utf-8') as f:
-        writer = csv.writer(f, csv.unix_dialect())
-        writer.writerows(results)
+        csv.writer(f, csv.unix_dialect()).writerows(results)
     logging.info(FILE_SAVED.format(file_path=file_path))

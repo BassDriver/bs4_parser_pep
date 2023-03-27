@@ -1,12 +1,12 @@
 import argparse
 import logging
 
-from constants import LOG_DIR, LOG_FILE
+from constants import LOG_DIR, LOG_FILE, OUTPUT_ATTR_FILE, OUTPUT_ATTR_PRETTY
 from logging.handlers import RotatingFileHandler
 
 LOG_FORMAT = '"%(asctime)s - [%(levelname)s] - %(message)s"'
 DT_FORMAT = '%d.%m.%Y %H:%M:%S'
-CHOICES = ('pretty', 'file')
+CHOICES = (OUTPUT_ATTR_PRETTY, OUTPUT_ATTR_FILE)
 
 
 def configure_argument_parser(available_modes):

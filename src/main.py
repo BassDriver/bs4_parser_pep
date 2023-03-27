@@ -15,36 +15,39 @@ from utils import find_tag, get_soup
 DOWNLOAD_COMPLETE = 'Архив был загружен и сохранён: {archive_path}'
 COMMAND_ARGUMENTS = 'Аргументы командной строки: {args}'
 JOB_DONE = 'Парсер завершил работу.'
-ERROR_MESSAGE = 'Ошибка при выполнении.'
+ERROR_MESSAGE = 'Ошибка при выполнении: {error}'
+LINK_ERROR = 'Ссылка {link} недоступна. Ошбика {error}'
+INFO_MESSAGE = ('Несовпадение статусов:'
+                ' {full_link} -'
+                ' Статус в карточке - {status_internal},'
+                ' Ожидаемые статусы - {status_external}')
 
 
 def whats_new(session):
     whats_new_url = urljoin(MAIN_DOC_URL, 'whatsnew/')
-    soup = get_soup(session, whats_new_url)
-    sections_by_python = soup.select(
-        '#what-s-new-in-python div.toctree-wrapper li.toctree-l1'
-    )
     results = [('Ссылка на статью', 'Заголовок', 'Редактор, Автор')]
-    for section in tqdm(sections_by_python):
-        version_a_tag = section.find('a')
-        version_link = urljoin(whats_new_url, version_a_tag['href'])
+    for section in tqdm(
+        get_soup(session, whats_new_url).select(
+            '#what-s-new-in-python div.toctree-wrapper li.toctree-l1 > a'
+            )
+        ):
+        version_link = urljoin(whats_new_url, section['href'])
         try:
             soup = get_soup(session, version_link)
             results.append(
                 (version_link, find_tag(soup, 'h1').text,
                  find_tag(soup, 'dl').text.replace('\n', ' '))
                 )
-        except ConnectionError:
+        except ConnectionError as error:
+            logging.exception(LINK_ERROR.format(link=version_link, error=error))
             continue
 
     return results
 
 
 def latest_versions(session):
-    soup = get_soup(session, MAIN_DOC_URL)
-    sidebar = find_tag(soup, 'div', {'class': 'sphinxsidebarwrapper'})
-    ul_tags = sidebar.find_all('ul')
-    for ul in ul_tags:
+    for ul in get_soup(
+        session, MAIN_DOC_URL).select('div.sphinxsidebarwrapper ul'):
         if 'All versions' in ul.text:
             a_tags = ul.find_all('a')
             break
@@ -67,9 +70,8 @@ def latest_versions(session):
 
 def download(session):
     downloads_url = urljoin(MAIN_DOC_URL, 'download.html')
-    soup = get_soup(session, downloads_url)
 
-    pdf_a4_link = soup.select_one(
+    pdf_a4_link = get_soup(session, downloads_url).select_one(
         'div[role=main] table.docutils a[href$="pdf-a4.zip"]')['href']
 
     archive_url = urljoin(downloads_url, pdf_a4_link)
@@ -89,27 +91,31 @@ def pep(session):
     num_index = find_tag(soup, 'section', attrs={'id': 'numerical-index'})
     pep_list = find_tag(num_index, 'tbody')
     pep_lines = pep_list.find_all('tr')
-    status_counter = defaultdict(list)
-    info_message = ''
+    status_counter = defaultdict(int)
+    info_message = []
     for pep_line in tqdm(pep_lines):
         short_status = pep_line.find('td').text[1:]
-        status_ext = EXPECTED_STATUS[short_status]
+        status_external = EXPECTED_STATUS[short_status]
         link = find_tag(pep_line, 'a')['href']
         full_link = urljoin(PEP_LIST_URL, link)
-        soup = get_soup(session, full_link)
-        dl_tag = find_tag(soup, 'dl')
-        status_line = dl_tag.find(string='Status')
-        status_line = status_line.find_parent()
-        status_int = str(status_line.next_sibling.next_sibling.string)
-        if status_int not in status_ext:
-            info_message += (
-                '\nНесовпадение статусов:\n'
-                f'{full_link}\n'
-                f'Статус в карточке - {status_int}\n'
-                f'Ожидаемые статусы - {status_ext}'
-            )
-        status_counter[status_int] = status_counter.get(status_int, 0) + 1
-    if info_message != '':
+        try:
+            soup = get_soup(session, full_link)
+            dl_tag = find_tag(soup, 'dl')
+            status_line = dl_tag.find(string='Status')
+            status_line = status_line.find_parent()
+            status_internal = str(
+                status_line.next_sibling.next_sibling.string)
+            if status_internal not in status_external:
+                info_message.append(INFO_MESSAGE.format(
+                    full_link=full_link, status_internal=status_internal,
+                    status_external=status_external)
+                )
+            status_counter[status_internal] += 1
+        except ConnectionError as error:
+            logging.exception(LINK_ERROR.format(link=full_link, error=error))
+            continue 
+
+    if info_message != []:
         logging.info(info_message)
     return [
         ('Статус', 'Количество'),
@@ -144,8 +150,8 @@ def main():
 
         if results is not None:
             control_output(results, args)
-    except Exception:
-        logging.exception(ERROR_MESSAGE, stack_info=True)
+    except Exception as error:
+        logging.exception(ERROR_MESSAGE.format(error=error), stack_info=True)
 
     logging.info(JOB_DONE)
 
